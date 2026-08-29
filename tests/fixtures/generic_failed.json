@@ -1,0 +1,12 @@
+{
+  "event_id": "fixture-generic-event-failure-001",
+  "event_name": "agent-turn-complete",
+  "provider": "fixture-agent",
+  "session_id": "fixture-generic-session-failure-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "text": "The build failed. A dependency could not be resolved, so validation is incomplete.",
+  "failed": true,
+  "background_pending": false,
+  "error": "build_failed",
+  "message": "Synthetic failure used by the BLAIR test suite."
+}

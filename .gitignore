@@ -1,0 +1,46 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.pytest-*/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging output
+build/
+dist/
+release/
+*.egg-info/
+*.whl
+
+# Local environments
+.venv/
+venv/
+env/
+
+# BLAIR runtime and test homes
+.blair/
+.e2e-*/
+.e2e-*.log
+.test-home-*/
+audio/
+models/
+runtime/
+logs/
+sessions.json
+playback.json
+config.json
+*.wav
+*.partial
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

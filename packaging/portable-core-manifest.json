@@ -1,0 +1,21 @@
+{
+  "artifact": "BLAIR Windows portable core bootstrap",
+  "format_version": 1,
+  "requires": {
+    "operating_system": "Windows 10 or newer",
+    "powershell": "5.1 or newer",
+    "python": ">=3.11,<3.14 (64-bit)"
+  },
+  "bundles": [
+    "BLAIR pure-Python wheel",
+    "no-admin install and uninstall scripts",
+    "clean-install verification script",
+    "privacy, integration, configuration, troubleshooting, and license documentation"
+  ],
+  "excludes": [
+    "Kokoro runtime dependencies",
+    "Kokoro ONNX model files",
+    "third-party voice assets",
+    "Python interpreter"
+  ]
+}

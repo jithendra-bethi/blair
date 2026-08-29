@@ -1,0 +1,44 @@
+[
+  {
+    "name": "reported success",
+    "text": "Implemented the feature. All 18 tests passed.",
+    "expected_status": "success",
+    "must_include": ["task is complete", "18 tests passed"],
+    "must_exclude": ["needs your attention"]
+  },
+  {
+    "name": "zero failures is not failure",
+    "text": "Completed the migration with zero failures. The build succeeded.",
+    "expected_status": "success",
+    "must_include": ["task is complete"],
+    "must_exclude": ["needs your attention"]
+  },
+  {
+    "name": "failed validation",
+    "text": "The build failed. The release cannot proceed until the dependency is fixed.",
+    "expected_status": "blocked",
+    "must_include": ["needs your attention", "build failed"],
+    "must_exclude": ["task is complete"]
+  },
+  {
+    "name": "unverified partial result",
+    "text": "Updated the parser, but integration tests were not run. The result is unverified.",
+    "expected_status": "partial",
+    "must_include": ["partly complete", "not run"],
+    "must_exclude": ["task is complete"]
+  },
+  {
+    "name": "table stays on screen",
+    "text": "Completed and compiled the comparison.\n\n| Name | Score |\n| --- | --- |\n| Alpha | 91 |",
+    "expected_status": "success",
+    "must_include": ["compiled a table", "check the screen"],
+    "must_exclude": ["Alpha", "91"]
+  },
+  {
+    "name": "code and sensitive values stay on screen",
+    "text": "Updated the configuration.\n\n```text\napi_key=sk-test_1234567890abcdef\n```\nSee C:\\fixture\\secret\\config.json and https://example.invalid/private.",
+    "expected_status": "success",
+    "must_include": ["check the screen"],
+    "must_exclude": ["sk-test", "config.json", "example.invalid"]
+  }
+]

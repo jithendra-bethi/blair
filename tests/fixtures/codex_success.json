@@ -1,0 +1,10 @@
+{
+  "type": "agent-turn-complete",
+  "thread-id": "fixture-codex-thread-001",
+  "turn-id": "fixture-codex-turn-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "input-messages": [
+    "Add the status command and verify it."
+  ],
+  "last-assistant-message": "Implemented the status command and updated its help text. All 18 tests passed. The detailed diff is shown below.\n\n```diff\n+ status = enabled\n```"
+}

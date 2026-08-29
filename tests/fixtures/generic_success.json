@@ -1,0 +1,13 @@
+{
+  "event_id": "fixture-generic-event-001",
+  "event_name": "agent-turn-complete",
+  "provider": "fixture-agent",
+  "session_id": "fixture-generic-session-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "text": "Implemented the requested change. The build succeeded and all tests passed.",
+  "failed": false,
+  "background_pending": false,
+  "metadata": {
+    "fixture": true
+  }
+}

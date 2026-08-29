@@ -1,0 +1,10 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "fixture-claude-session-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "permission_mode": "default",
+  "stop_hook_active": false,
+  "background_tasks": [],
+  "session_crons": [],
+  "last_assistant_message": "Completed the configuration validation. All checks passed successfully. A detailed result table is included on screen.\n\n| Check | Result |\n| --- | --- |\n| Config | Passed |"
+}

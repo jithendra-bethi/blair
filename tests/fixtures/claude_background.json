@@ -1,0 +1,14 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "fixture-claude-session-background-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "stop_hook_active": false,
+  "background_tasks": [
+    {
+      "id": "fixture-background-task-001",
+      "status": "running"
+    }
+  ],
+  "session_crons": [],
+  "last_assistant_message": "Updated the main module. The extended verification is still running in the background."
+}

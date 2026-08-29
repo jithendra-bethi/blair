@@ -1,0 +1,8 @@
+{
+  "hook_event_name": "StopFailure",
+  "session_id": "fixture-claude-session-failure-001",
+  "cwd": "C:\\fixture\\blair-project",
+  "permission_mode": "default",
+  "error": "hook_timeout",
+  "message": "The validation command did not finish before the timeout. The result is unverified."
+}

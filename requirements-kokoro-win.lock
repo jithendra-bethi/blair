@@ -1,0 +1,29 @@
+# BLAIR optional local Kokoro runtime -- Windows lock generated from the tested
+# CPython 3.13 environment on 2026-08-30.  This stack is intentionally kept out
+# of BLAIR's core dependency set.
+#
+# IMPORTANT GPL NOTICE
+# phonemizer is GPL-3.0-or-later.  espeakng-loader is MIT, but its distributed
+# eSpeak NG binaries/data are GPL-3.0-or-later.  Anyone redistributing this
+# optional stack must satisfy the applicable GPL source, license, and notice
+# obligations; BLAIR's Apache-2.0 license does not replace those obligations.
+# Review the licenses of every wheel and the Kokoro model before distribution.
+#
+# All packages selected by pip for the tested runtime are pinned below.
+# Artifact hashes are omitted because Windows wheels differ across BLAIR's
+# supported Python 3.11-3.13 versions.  A release wheelhouse should be created
+# for each Python/architecture target and installed with a complete generated
+# --require-hashes manifest; partial hashes would give a false assurance.
+
+attrs==26.1.0
+dlinfo==2.0.0
+espeakng-loader==0.2.4
+flatbuffers==25.12.19
+joblib==1.5.3
+kokoro-onnx==0.6.1
+numpy==2.5.2
+onnxruntime==1.29.0
+packaging==26.3
+phonemizer==3.4.0
+protobuf==7.36.0
+typing-extensions==4.16.0
