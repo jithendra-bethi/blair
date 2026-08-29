@@ -1,0 +1,180 @@
+.gitattributes
+  h_974f1b2fa65ac6 1-8
+.github/workflows/ci.yml
+  h_974f1b2fa65ac6 1-47
+.gitignore
+  h_974f1b2fa65ac6 1-46
+CHANGELOG.md
+  h_974f1b2fa65ac6 1-26
+CONTRIBUTING.md
+  h_974f1b2fa65ac6 1-121
+LICENSE
+  h_974f1b2fa65ac6 1-201
+MANIFEST.in
+  h_974f1b2fa65ac6 1-14
+PLAN.md
+  h_974f1b2fa65ac6 1-117
+PRIVACY.md
+  h_974f1b2fa65ac6 1-135
+PROGRESS.md
+  h_974f1b2fa65ac6 1-48
+README.md
+  h_974f1b2fa65ac6 1-251
+SECURITY.md
+  h_974f1b2fa65ac6 1-26
+docs/acceptance-checklist.md
+  h_974f1b2fa65ac6 1-182
+docs/architecture.md
+  h_974f1b2fa65ac6 1-155
+docs/configuration.md
+  h_974f1b2fa65ac6 1-114
+docs/integrations.md
+  h_974f1b2fa65ac6 1-125
+docs/landscape.md
+  h_974f1b2fa65ac6 1-174
+docs/tested-environment.md
+  h_974f1b2fa65ac6 1-33
+docs/third-party-licenses.md
+  h_974f1b2fa65ac6 1-71
+docs/troubleshooting.md
+  h_974f1b2fa65ac6 1-158
+packaging/WINDOWS_RELEASE.md
+  h_974f1b2fa65ac6 1-41
+packaging/portable-core-manifest.json
+  h_974f1b2fa65ac6 1-21
+pyproject.toml
+  h_974f1b2fa65ac6 1-62
+requirements-kokoro-win.lock
+  h_974f1b2fa65ac6 1-29
+scripts/_common.ps1
+  h_974f1b2fa65ac6 1-187
+scripts/build-release.ps1
+  h_974f1b2fa65ac6 1-165
+scripts/install.ps1
+  h_974f1b2fa65ac6 1-106
+scripts/test-clean-install.ps1
+  h_974f1b2fa65ac6 1-165
+scripts/uninstall.ps1
+  h_974f1b2fa65ac6 1-114
+src/blair/__init__.py
+  h_974f1b2fa65ac6 1-6
+src/blair/__main__.py
+  h_974f1b2fa65ac6 1-4
+src/blair/adapters/__init__.py
+  h_974f1b2fa65ac6 1-17
+src/blair/adapters/_json.py
+  h_974f1b2fa65ac6 1-108
+src/blair/adapters/claude.py
+  h_974f1b2fa65ac6 1-114
+src/blair/adapters/codex.py
+  h_974f1b2fa65ac6 1-43
+src/blair/adapters/errors.py
+  h_974f1b2fa65ac6 1-15
+src/blair/adapters/generic.py
+  h_974f1b2fa65ac6 1-93
+src/blair/adapters/models.py
+  h_974f1b2fa65ac6 1-33
+src/blair/briefing.py
+  h_974f1b2fa65ac6 1-245
+src/blair/cli.py
+  h_974f1b2fa65ac6 1-376
+src/blair/config.py
+  h_974f1b2fa65ac6 1-99
+src/blair/consent.py
+  h_974f1b2fa65ac6 1-40
+src/blair/daemon.py
+  h_974f1b2fa65ac6 1-411
+src/blair/errors.py
+  h_974f1b2fa65ac6 1-10
+src/blair/hook_entry.py
+  h_974f1b2fa65ac6 1-65
+src/blair/hotkeys.py
+  h_974f1b2fa65ac6 1-157
+src/blair/integrations.py
+  h_974f1b2fa65ac6 1-256
+src/blair/kokoro_helper.py
+  h_974f1b2fa65ac6 1-299
+src/blair/locking.py
+  h_974f1b2fa65ac6 1-57
+src/blair/models.py
+  h_974f1b2fa65ac6 1-39
+src/blair/paths.py
+  h_974f1b2fa65ac6 1-27
+src/blair/pipeline.py
+  h_974f1b2fa65ac6 1-114
+src/blair/playback.py
+  h_974f1b2fa65ac6 1-105
+src/blair/runtime.py
+  h_974f1b2fa65ac6 1-12
+src/blair/state.py
+  h_974f1b2fa65ac6 1-153
+src/blair/tts/__init__.py
+  h_974f1b2fa65ac6 1-32
+src/blair/tts/base.py
+  h_974f1b2fa65ac6 1-22
+src/blair/tts/kokoro.py
+  h_974f1b2fa65ac6 1-397
+src/blair/tts/windows.py
+  h_974f1b2fa65ac6 1-181
+tests/fixtures/README.md
+  h_974f1b2fa65ac6 1-27
+tests/fixtures/briefing_cases.json
+  h_974f1b2fa65ac6 1-44
+tests/fixtures/claude_background.json
+  h_974f1b2fa65ac6 1-14
+tests/fixtures/claude_failure.json
+  h_974f1b2fa65ac6 1-8
+tests/fixtures/claude_success.json
+  h_974f1b2fa65ac6 1-10
+tests/fixtures/codex_success.json
+  h_974f1b2fa65ac6 1-10
+tests/fixtures/dense_result.md
+  h_974f1b2fa65ac6 1-20
+tests/fixtures/generic_failed.json
+  h_974f1b2fa65ac6 1-12
+tests/fixtures/generic_success.json
+  h_974f1b2fa65ac6 1-13
+tests/test_adapters.py
+  h_974f1b2fa65ac6 1-263
+tests/test_briefing.py
+  h_974f1b2fa65ac6 1-120
+tests/test_cli.py
+  h_974f1b2fa65ac6 1-51
+tests/test_config.py
+  h_974f1b2fa65ac6 1-31
+tests/test_daemon.py
+  h_974f1b2fa65ac6 1-43
+tests/test_documentation.py
+  h_974f1b2fa65ac6 1-45
+tests/test_hook_entry.py
+  h_974f1b2fa65ac6 1-16
+tests/test_hotkeys.py
+  h_974f1b2fa65ac6 1-48
+tests/test_integrations.py
+  h_974f1b2fa65ac6 1-107
+tests/test_kokoro.py
+  h_974f1b2fa65ac6 1-185
+tests/test_kokoro_helper.py
+  h_974f1b2fa65ac6 1-251
+tests/test_pipeline.py
+  h_974f1b2fa65ac6 1-134
+tests/test_product_boundaries.py
+  h_974f1b2fa65ac6 1-27
+tests/test_release_scripts.py
+  h_974f1b2fa65ac6 1-121
+tests/test_state.py
+  h_974f1b2fa65ac6 1-39
+tests/test_windows_tts.py
+  h_974f1b2fa65ac6 1-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "8951f927a0a1e7ef22dad26fe173cc4ba0de7fd2",
+  "prompts": {},
+  "humans": {
+    "h_974f1b2fa65ac6": {
+      "author": "Jithendra Bethi <109282787+jithendra-bethi@users.noreply.github.com>"
+    }
+  }
+}
