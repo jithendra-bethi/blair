@@ -52,17 +52,46 @@ On Windows the endpoint is a named pipe derived from the resolved BLAIR home. A
 random 32-byte authentication key is stored in the runtime directory. The service
 serializes synthesis and playback so two completions do not talk over each other.
 
-The queue is **latest-wins**: a newly received completion stops current playback,
-discards an older queued completion, and becomes the next briefing. Duplicate
-event IDs or identical provider/session/text events within the deduplication
-window are suppressed.
+Runtime status reads, publication, and cleanup share `runtime/daemon-state.lock`.
+This prevents Windows file-sharing errors when shutdown overlaps a status check.
+Each service publishes a random instance ID and removes only its own record,
+preserving a replacement service's record even if the PID is reused. A status read
+failure is reported as an error; it does not delete a potentially live record.
+
+Duplicate event IDs and identical provider/session/text events within the
+deduplication window are rejected before touching audio or the pending queue.
+Globally muted events are dropped before session processing. When globally unmuted,
+new launch-scoped consent is applied before checking session permission; a completion
+from a muted session is also rejected without interrupting another briefing.
+
+The queue remains **latest-wins** for admitted events: the newer event replaces
+an older pending completion. An enabled session also stops current playback on
+arrival. An unknown session does not stop audio on arrival; its consent prompt
+runs in the worker, and playback starts only after permission is granted.
 
 ### Session and consent state
 
 `sessions.json` is an atomic, lock-protected store. Each provider session records
 its provider, working directory, tri-state consent, last briefing, and last WAV
-path. CLI commands can target an exact session; commands and hotkeys without a
-session target the most recently active one.
+path. Session commands and replay can target an exact session; without an ID they
+target the most recently active one. `Ctrl+Alt+B` and the `mute`/`unmute` commands
+instead control the persistent global `speech_muted` flag in the same store
+(absent in older files means unmuted). They preserve all session permissions.
+
+Global mute cancels the current playback token and blocks admission, composition,
+and playback, including manual speech and replay. The playback controller checks
+the flag again under its playback lock, covering a mute during synthesis. Muting
+holds that same lock while updating the flag and cancelling the current token;
+lock ordering is playback then sessions. Unmuting allows new speech without
+automatically replaying events dropped while muted.
+
+The toggle hotkey reserves a cancellable playback token for one fixed control
+phrase: "Blair muted" or "Blair unmuted". This control worker alone bypasses the
+global mute gate, so the mute confirmation can be heard after briefing playback
+stops. It synthesizes/caches the phrase in the configured voice outside briefing
+history. Token checks before and after synthesis discard stale confirmations;
+new toggles, CLI unmute, and Stop cancel pending control audio. Synthesis runs in
+the hidden worker, keeping the hotkey message loop responsive.
 
 Consent can come from the `blair run` terminal question or, for an unseen session
 whose hook fires outside the wrapper, a Windows Yes/No dialog. Each wrapper process
@@ -97,6 +126,14 @@ Kokoro defaults to `bf_emma`, `en-gb`, and speed `1.03`. SAPI selects an install
 English (United Kingdom) female voice where available, otherwise its default.
 Both backends write a WAV before playback. Playback runs in a child process so
 `blair stop` and the stop hotkey can interrupt it.
+
+Each playback receives a random token in `playback.json`. Stop cancels the token;
+it never terminates a PID read from that file. Workers check ownership every
+25 milliseconds during playback. On Windows, cancellation exits only the dedicated
+sound worker itself. On macOS/Linux, the worker stops its own child audio player.
+Playback startup, cancellation, and cleanup share a file lock. A finishing worker
+removes the record only if it still contains that worker's token, so it cannot
+erase a newer playback. The stored PID is informational.
 
 The main service never imports the optional neural runtime. It sends one job at a
 time over a private JSON-lines pipe to a persistent child process launched with

@@ -59,6 +59,8 @@ class StateStore:
             raise RuntimeError(f"BLAIR state is unreadable: {self.path}: {exc}") from exc
         if data.get("version") != 1 or not isinstance(data.get("sessions"), dict):
             raise RuntimeError(f"Unsupported BLAIR state format: {self.path}")
+        if not isinstance(data.get("speech_muted", False), bool):
+            raise RuntimeError(f"Invalid BLAIR speech mute state: {self.path}")
         return data
 
     def _write(self, data: dict[str, Any]) -> None:
@@ -145,6 +147,27 @@ class StateStore:
                 SessionState.from_dict(session_id, raw)
                 for session_id, raw in data["sessions"].items()
             ]
+
+    def is_speech_muted(self) -> bool:
+        with file_lock(self.lock_path):
+            return self._read().get("speech_muted", False)
+
+    def set_speech_muted(self, muted: bool) -> bool:
+        if not isinstance(muted, bool):
+            raise ValueError("speech mute must be a boolean")
+        with file_lock(self.lock_path):
+            data = self._read()
+            data["speech_muted"] = muted
+            self._write(data)
+        return muted
+
+    def toggle_speech_muted(self) -> bool:
+        with file_lock(self.lock_path):
+            data = self._read()
+            muted = not data.get("speech_muted", False)
+            data["speech_muted"] = muted
+            self._write(data)
+        return muted
 
     @staticmethod
     def _serialize(state: SessionState) -> dict[str, Any]:

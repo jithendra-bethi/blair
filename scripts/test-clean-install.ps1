@@ -28,7 +28,7 @@ $testLocalApplicationData = Join-Path $testProfileRoot 'AppData\Local'
 $testSessionId = 'clean-install-generic-hook'
 $venvPython = Join-Path $testInstallRoot 'venv\Scripts\python.exe'
 
-$environmentNames = @('BLAIR_HOME', 'BLAIR_CONSENT_RESPONSE', 'USERPROFILE', 'LOCALAPPDATA')
+$environmentNames = @('BLAIR_HOME', 'BLAIR_CONSENT_RESPONSE', 'BLAIR_LAUNCH_ID', 'USERPROFILE', 'LOCALAPPDATA')
 $savedEnvironment = @{}
 foreach ($environmentName in $environmentNames) {
     $savedEnvironment[$environmentName] = [Environment]::GetEnvironmentVariable(
@@ -41,6 +41,7 @@ New-Item -ItemType Directory -Path $testProfileRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $testLocalApplicationData -Force | Out-Null
 $env:BLAIR_HOME = $testDataRoot
 $env:BLAIR_CONSENT_RESPONSE = 'yes'
+$env:BLAIR_LAUNCH_ID = [Guid]::NewGuid().ToString()
 $env:USERPROFILE = $testProfileRoot
 $env:LOCALAPPDATA = $testLocalApplicationData
 

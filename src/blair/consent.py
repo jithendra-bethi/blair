@@ -11,11 +11,8 @@ class ConsentPrompter:
     def ask(self, provider: str, session_id: str) -> bool:
         if self.callback:
             return self.callback(provider, session_id)
-        forced = os.environ.get("BLAIR_CONSENT_RESPONSE", "").strip().casefold()
-        if forced in {"yes", "y", "true", "1", "on"}:
-            return True
-        if forced in {"no", "n", "false", "0", "off"}:
-            return False
+        # Wrapper choices arrive as launch-scoped event metadata. Process-wide
+        # environment values cannot provide consent for an unrelated session.
         if os.name != "nt":
             return False
         return _windows_prompt(provider)

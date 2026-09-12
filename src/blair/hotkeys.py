@@ -53,24 +53,20 @@ class HotkeyActions:
         self.playback = playback or PlaybackController(home)
 
     def toggle(self) -> str:
-        session = self.state.get()
-        if not session:
-            return "hotkey-no-session"
-        enabled = session.enabled is not True
-        self.state.set_enabled(enabled, session.session_id)
-        if not enabled:
-            self.playback.stop()
-        return "hotkey-enabled" if enabled else "hotkey-disabled"
+        muted = self.playback.toggle_muted(announce=True)
+        return "hotkey-speech-muted" if muted else "hotkey-speech-unmuted"
 
     def replay(self) -> str:
+        if self.state.is_speech_muted():
+            return "hotkey-speech-muted"
         session = self.state.get()
         if not session or not session.last_audio:
             return "hotkey-no-briefing"
         path = Path(session.last_audio)
         if not path.exists():
             return "hotkey-no-briefing"
-        self.playback.play(path)
-        return "hotkey-replayed"
+        process = self.playback.play(path)
+        return "hotkey-replayed" if process is not None else "hotkey-speech-muted"
 
     def stop(self) -> str:
         return "hotkey-stopped" if self.playback.stop() else "hotkey-no-speech"

@@ -18,8 +18,9 @@ from pathlib import Path
 from typing import Any
 
 from .adapters import MAX_PAYLOAD_BYTES, NormalizedEvent, parse_generic_event
-from .config import _atomic_json_write
+from .config import _atomic_json_write, load_config
 from .hotkeys import GlobalHotkeys, HotkeyActions
+from .locking import file_lock
 from .paths import blair_home, ensure_layout
 from .pipeline import BriefingPipeline
 from .playback import PlaybackController
@@ -105,13 +106,16 @@ def start_daemon(home: Path | None = None) -> int:
         return current
     command = self_command("_daemon", "serve")
     environment = os.environ.copy()
+    environment.pop("BLAIR_CONSENT_RESPONSE", None)
+    environment.pop("BLAIR_LAUNCH_ID", None)
     environment["BLAIR_HOME"] = str(root)
     creationflags = 0
     if os.name == "nt":
+        # DETACHED_PROCESS makes Windows ignore CREATE_NO_WINDOW; the venv
+        # launcher can then give the daemon a visible console.
         creationflags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0) | getattr(
-            subprocess, "DETACHED_PROCESS", 0
+            subprocess, "CREATE_NO_WINDOW", 0
         )
-        creationflags |= getattr(subprocess, "CREATE_NO_WINDOW", 0)
     process = subprocess.Popen(
         command,
         env=environment,
@@ -151,18 +155,36 @@ def stop_daemon(home: Path | None = None) -> bool:
 
 def daemon_pid(home: Path | None = None) -> int | None:
     root = home or blair_home()
-    path = _runtime_dir(root) / "daemon.json"
-    if not path.exists():
-        return None
-    try:
-        pid = int(json.loads(path.read_text(encoding="utf-8"))["pid"])
-    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+    runtime = _runtime_dir(root)
+    path = runtime / "daemon.json"
+    # Windows denies unlink/replace while an ordinary reader has the file open.
+    # Serialize status reads with publication and cleanup, including stale records.
+    with file_lock(runtime / "daemon-state.lock"):
+        try:
+            pid = int(json.loads(path.read_text(encoding="utf-8"))["pid"])
+        except FileNotFoundError:
+            return None
+        except (ValueError, KeyError, TypeError, json.JSONDecodeError):
+            path.unlink(missing_ok=True)
+            return None
+        if _pid_alive(pid):
+            return pid
         path.unlink(missing_ok=True)
         return None
-    if _pid_alive(pid):
-        return pid
-    path.unlink(missing_ok=True)
-    return None
+
+
+def _remove_daemon_record(home: Path, instance_id: str) -> None:
+    runtime = _runtime_dir(home)
+    path = runtime / "daemon.json"
+    with file_lock(runtime / "daemon-state.lock"):
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return
+        # A replacement service may have published after the listener closed.
+        # Even a reused PID must not let the old service remove the new record.
+        if isinstance(record, dict) and record.get("instance_id") == instance_id:
+            path.unlink(missing_ok=True)
 
 
 def _pid_alive(pid: int) -> bool:
@@ -265,14 +287,17 @@ class BlairDaemon:
         except OSError:
             return 0 if daemon_pid(self.home) else 1
 
-        _atomic_json_write(
-            self.runtime / "daemon.json",
-            {
-                "pid": os.getpid(),
-                "started_at": datetime.now(UTC).isoformat(),
-                "address_hash": hashlib.sha256(address.encode("utf-8")).hexdigest(),
-            },
-        )
+        instance_id = secrets.token_hex(16)
+        with file_lock(self.runtime / "daemon-state.lock"):
+            _atomic_json_write(
+                self.runtime / "daemon.json",
+                {
+                    "pid": os.getpid(),
+                    "instance_id": instance_id,
+                    "started_at": datetime.now(UTC).isoformat(),
+                    "address_hash": hashlib.sha256(address.encode("utf-8")).hexdigest(),
+                },
+            )
         worker = threading.Thread(target=self._work, name="blair-worker", daemon=True)
         worker.start()
         if self.hotkeys:
@@ -304,7 +329,7 @@ class BlairDaemon:
             if self.hotkeys:
                 self.hotkeys.stop()
             PlaybackController(self.home).stop()
-            (self.runtime / "daemon.json").unlink(missing_ok=True)
+            _remove_daemon_record(self.home, instance_id)
             if os.name != "nt":
                 Path(address).unlink(missing_ok=True)
             self._log("daemon-stopped")
@@ -320,9 +345,6 @@ class BlairDaemon:
                 return
             assert isinstance(queued, tuple)
             sequence, event = queued
-            if self.ledger.seen_or_add(event):
-                self._log("event-duplicate", event)
-                continue
             result = event.to_agent_result()
             if event.metadata.get("failed"):
                 result.text = f"The agent turn failed. {result.text}"
@@ -331,28 +353,62 @@ class BlairDaemon:
                     f"The agent still has background work and is not finished. {result.text}"
                 )
             try:
+                # Use one validated settings snapshot for this entire briefing.
+                config = load_config(self.home)
+                if config.backend != self.pipeline.config.backend:
+                    self.pipeline.backend = None
+                self.pipeline.config = config
                 outcome = self.pipeline.handle(result, play=False)
-            except Exception as exc:  # Hook failures must never affect the parent agent.
+                reason = outcome.reason
+                if outcome.artifact and self.pipeline.config.play_audio:
+                    with self.sequence_lock:
+                        session = self.pipeline.state.get(event.session_id)
+                        if sequence == self.latest_sequence and session and session.enabled is True:
+                            process = self.pipeline.playback.play(outcome.artifact.path)
+                            reason = "spoken" if process is not None else "speech-muted"
+                        elif session and session.enabled is not True:
+                            reason = "disabled-after-synthesis"
+                        else:
+                            reason = "superseded"
+            except Exception as exc:  # A failed briefing must not end the event worker.
                 self._log("briefing-error", event, exc)
                 continue
-            reason = outcome.reason
-            if outcome.artifact and self.pipeline.config.play_audio:
-                with self.sequence_lock:
-                    session = self.pipeline.state.get(event.session_id)
-                    if sequence == self.latest_sequence and session and session.enabled is True:
-                        self.pipeline.playback.play(outcome.artifact.path)
-                        reason = "spoken"
-                    elif session and session.enabled is not True:
-                        reason = "disabled-after-synthesis"
-                    else:
-                        reason = "superseded"
             self._log(f"briefing-{reason}", event)
 
     def _enqueue_latest(self, event: NormalizedEvent) -> None:
         with self.sequence_lock:
+            try:
+                # Reject ignored arrivals before changing audio or the pending
+                # sequence. Keep all ledger access in this serialized admission path.
+                if self.ledger.seen_or_add(event):
+                    self._log("event-duplicate", event)
+                    return
+                state = self.pipeline.state
+                if state.is_speech_muted():
+                    self._log("briefing-speech-muted", event)
+                    return
+                session = state.get(event.session_id)
+                launch_id = event.metadata.get("launch_id")
+                consent_override = event.metadata.get("consent_override")
+                if (
+                    isinstance(launch_id, str)
+                    and launch_id
+                    and isinstance(consent_override, bool)
+                    and (session is None or session.launch_id != launch_id)
+                ):
+                    state.ensure_session(event.session_id, event.provider, event.cwd)
+                    session = state.begin_launch(event.session_id, launch_id, consent_override)
+                if session and session.enabled is False:
+                    self._log("briefing-session-disabled", event)
+                    return
+                # Unknown sessions still ask in the worker, never in the listener.
+                if session and session.enabled is True:
+                    self.pipeline.playback.stop()
+            except Exception as exc:
+                self._log("event-rejected", event, exc)
+                return
             self.latest_sequence += 1
             sequence = self.latest_sequence
-            self.pipeline.playback.stop()
             while True:
                 try:
                     self.events.get_nowait()

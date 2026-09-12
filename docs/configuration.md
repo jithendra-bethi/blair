@@ -1,6 +1,6 @@
 # Configuration
 
-Show the active configuration with:
+Show the saved configuration with:
 
 ```powershell
 blair config show
@@ -9,6 +9,16 @@ blair config show
 Change one key with `blair config set KEY VALUE`. Values are saved to
 `%LOCALAPPDATA%\BLAIR\config.json`, or to `BLAIR_HOME\config.json` when that
 environment variable is set.
+
+The running service reloads speech and briefing settings before each new briefing.
+This includes backend, voice, language, speed, length, honorific, prompting,
+automatic playback, and audio retention. A briefing already being generated or
+played keeps its original settings. Changing the backend also clears the service's
+cached backend selection. Invalid settings cause that briefing to be skipped and
+logged; the service checks the file again for the next event.
+
+Hotkey bindings and `hotkeys_enabled` still require a service restart, as described
+below. The settings command tells you when this is needed.
 
 ## Defaults
 
@@ -24,7 +34,7 @@ environment variable is set.
 | `play_audio` | `true` | Play newly synthesized hook briefings |
 | `keep_audio_files` | `10` | Rolling WAV count, accepted range 1–100 |
 | `hotkeys_enabled` | `true` | Register global controls in the service |
-| `hotkey_toggle` | `ctrl+alt+b` | Toggle the active session |
+| `hotkey_toggle` | `ctrl+alt+b` | Mute/unmute all BLAIR speech, preserving session permissions |
 | `hotkey_replay` | `ctrl+alt+r` | Replay the active session |
 | `hotkey_stop` | `ctrl+alt+s` | Stop playback |
 

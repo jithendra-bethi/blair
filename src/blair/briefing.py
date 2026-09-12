@@ -29,12 +29,19 @@ SECRET_RE = re.compile(
     r"|\b(?:bearer|api[_ -]?key|access[_ -]?token|secret|password)\s*[:=]\s*\S+"
 )
 LONG_ID_RE = re.compile(r"(?i)\b(?:[0-9a-f]{16,}|[a-z0-9_-]{32,})\b")
+DIFF_HUNK_RE = re.compile(r"^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@(?: .*)?$")
+DIFF_METADATA_RE = re.compile(
+    r"^(?:index |--- |\+\+\+ |old mode |new mode |deleted file mode |new file mode "
+    r"|similarity index |dissimilarity index |rename from |rename to |copy from |copy to "
+    r"|Binary files |\\ No newline at end of file$)"
+)
 
 
 def compose_briefing(
     result: AgentResult, *, honorific: str = "sir", max_words: int = 58
 ) -> Briefing:
-    raw = ANSI_RE.sub("", result.text or "").strip()
+    # Preserve indentation so a diff's context marker can be distinguished from its margin.
+    raw = ANSI_RE.sub("", result.text or "").strip("\r\n")
     explicit = EXPLICIT_RE.search(raw)
     lines, had_table, had_code = _clean_lines(explicit.group(1) if explicit else raw)
     joined = " ".join(lines)
@@ -55,7 +62,7 @@ def compose_briefing(
     }[status]
 
     parts = [intro]
-    parts.extend(details[:2])
+    parts.extend(details)
 
     suffix = f", {honorific.strip()}" if honorific.strip() else ""
     if had_table:
@@ -79,28 +86,70 @@ def _clean_lines(text: str) -> tuple[list[str], bool, bool]:
     in_code = False
     had_code = False
     had_table = False
-    for original in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+    in_diff = False
+    old_remaining = new_remaining = diff_indent = 0
+    source_lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    for index, original in enumerate(source_lines):
         line = original.strip()
         if line.startswith("```") or line.startswith("~~~"):
             in_code = not in_code
             had_code = True
+            in_diff = False
+            old_remaining = new_remaining = 0
             continue
         if in_code:
             had_code = True
             continue
+
+        # A leading +/- is ambiguous with Markdown. Only consume diff body lines
+        # after a unified hunk header, and stop at its declared old/new line counts.
+        hunk = DIFF_HUNK_RE.fullmatch(line)
+        if hunk:
+            old_remaining = int(hunk[1]) if hunk[1] is not None else 1
+            new_remaining = int(hunk[2]) if hunk[2] is not None else 1
+            diff_indent = len(original) - len(original.lstrip())
+            in_diff = had_code = True
+            continue
+        if in_diff and line == r"\ No newline at end of file":
+            continue
+        if old_remaining or new_remaining:
+            marker = original[diff_indent : diff_indent + 1]
+            if marker == "-" and old_remaining:
+                old_remaining -= 1
+                continue
+            if marker == "+" and new_remaining:
+                new_remaining -= 1
+                continue
+            if marker == " " and old_remaining and new_remaining:
+                old_remaining -= 1
+                new_remaining -= 1
+                continue
+            old_remaining = new_remaining = 0
+            in_diff = False
+        paired_file_header = (
+            line.startswith("--- ")
+            and index + 1 < len(source_lines)
+            and source_lines[index + 1].strip().startswith("+++ ")
+        )
+        if line.startswith("diff --git ") or paired_file_header:
+            in_diff = had_code = True
+            continue
+        if in_diff and DIFF_METADATA_RE.match(line):
+            continue
+        in_diff = False
         if not line:
             continue
         pipe_count = line.count("|")
         if TABLE_SEPARATOR_RE.match(line) or pipe_count >= 2:
             had_table = True
             continue
-        if re.match(r"^\s*(diff --git|@@ |\+\+\+ |--- a/|\+[^+]|-[^-])", original):
-            had_code = True
-            continue
         line = re.sub(r"^#{1,6}\s+", "", line)
         line = re.sub(r"^(?:[-*+] |\d+[.)]\s+|>\s*)", "", line)
         line = LINK_RE.sub(r"\1", line)
         line = re.sub(r"`[^`]+`", "the referenced item", line)
+        # Preserve token shapes for filtering before Markdown removes underscores.
+        # The second pass also catches labels exposed by stripping emphasis.
+        line = _redact_for_speech(line)
         line = re.sub(r"[*_~`]", "", line)
         line = _redact_for_speech(line)
         line = re.sub(r"\s+", " ", line).strip()
@@ -185,7 +234,7 @@ def _choose_details(lines: list[str], status: str) -> list[str]:
     sentences: list[str] = []
     for line in lines:
         sentences.extend(piece.strip() for piece in SENTENCE_RE.split(line) if piece.strip())
-    candidates: list[tuple[int, int, str]] = []
+    candidates: list[tuple[bool, int, int, str]] = []
     for index, sentence in enumerate(sentences):
         lower = sentence.casefold()
         if lower.startswith(("sure.", "certainly.", "here is", "here's")):
@@ -202,9 +251,17 @@ def _choose_details(lines: list[str], status: str) -> list[str]:
             score += 6 if status in {"blocked", "waiting"} else 2
         if len(sentence.split()) > 32:
             score -= 3
-        candidates.append((score, index, _normalize_sentence(sentence)))
-    chosen = sorted(candidates, key=lambda item: (-item[0], item[1]))[:3]
-    return [item[2] for item in sorted(chosen, key=lambda item: item[1])]
+        needs_attention = _classify_status(sentence) in {"blocked", "partial", "waiting"} or bool(
+            re.search(
+                r"\bwarning\s*:|\b(?:approval|input|decision)\s+(?:is\s+)?(?:required|needed)\b",
+                lower,
+            )
+        )
+        candidates.append((needs_attention, score, index, _normalize_sentence(sentence)))
+    # Select only the two details we will speak. Put attention items first so
+    # source ordering and the word limit cannot favor routine updates over them.
+    chosen = sorted(candidates, key=lambda item: (-item[0], -item[1], item[2]))[:2]
+    return [item[3] for item in sorted(chosen, key=lambda item: (-item[0], item[2]))]
 
 
 def _normalize_sentence(sentence: str) -> str:

@@ -42,6 +42,8 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--session")
     subparsers.add_parser("sessions")
     subparsers.add_parser("stop")
+    subparsers.add_parser("mute", help="mute all Blair speech")
+    subparsers.add_parser("unmute", help="unmute speech for enabled sessions")
     subparsers.add_parser("doctor")
 
     daemon = subparsers.add_parser("daemon")
@@ -113,6 +115,14 @@ def main(argv: list[str] | None = None) -> int:
 def _dispatch(args: argparse.Namespace, home: Path) -> int:
     state = StateStore(home)
     session_id = getattr(args, "session", None) or os.environ.get("BLAIR_SESSION_ID")
+    if args.command in {"mute", "unmute"}:
+        muted = PlaybackController(home).set_muted(args.command == "mute")
+        print(
+            "Blair speech is muted everywhere."
+            if muted
+            else "Blair speech is unmuted. Enabled sessions can speak."
+        )
+        return 0
     if args.command in {"on", "off", "toggle"}:
         existing = state.get(session_id)
         if existing is None:
@@ -129,6 +139,7 @@ def _dispatch(args: argparse.Namespace, home: Path) -> int:
         )
         return 0
     if args.command == "status":
+        print("Blair speech: " + ("muted globally" if state.is_speech_muted() else "unmuted"))
         existing = state.get(session_id)
         if not existing:
             print("Briefing Protocol has no active session.")
@@ -152,13 +163,15 @@ def _dispatch(args: argparse.Namespace, home: Path) -> int:
         return 0
     if args.command == "stop":
         stopped = PlaybackController(home).stop()
-        print("Speech stopped." if stopped else "No BLAIR speech is playing.")
+        print("Speech stop requested." if stopped else "No BLAIR speech is playing.")
         return 0
     if args.command == "replay":
         existing = state.get(session_id)
         if not existing or not existing.last_audio or not Path(existing.last_audio).exists():
             raise BlairError("No briefing is available for this session")
-        PlaybackController(home).play(Path(existing.last_audio))
+        if PlaybackController(home).play(Path(existing.last_audio)) is None:
+            print("Blair speech is muted. Run 'blair unmute' to resume speech.")
+            return 0
         print(existing.last_briefing or "Replaying the last briefing.")
         return 0
     if args.command == "doctor":
@@ -203,6 +216,9 @@ def _speak_text(
         play=not no_play,
         wait=wait,
     )
+    if outcome.reason == "speech-muted":
+        print("Blair speech is muted. Run 'blair unmute' to resume speech.")
+        return 0
     if outcome.briefing:
         print(outcome.briefing.text)
     if outcome.artifact:
@@ -373,4 +389,8 @@ def _config_command(args: argparse.Namespace, home: Path) -> int:
     setattr(config, args.key, value)
     save_config(config, home)
     print(f"{args.key} = {value}")
+    if args.key == "hotkeys_enabled" or args.key.startswith("hotkey_"):
+        print("Saved. Restart hotkeys with 'blair daemon stop' then 'blair daemon start'.")
+    else:
+        print("Saved. Applies when the next briefing starts; current speech is unchanged.")
     return 0

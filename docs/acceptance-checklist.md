@@ -97,8 +97,14 @@ Only run this section after approving the approximately 354 MB download:
   state once, and a later manual On remains active for that launch.
 - [ ] `on`, `off`, `toggle`, `status`, and `replay` affect the requested session.
 - [ ] Two fixture sessions retain independent consent and replay state.
-- [ ] `Ctrl+Alt+B` toggles the most recently active session.
-- [ ] `Ctrl+Alt+R` replays its last briefing.
+- [ ] `Ctrl+Alt+B` mutes/unmutes all speech, regardless of which chat is active.
+- [ ] Each toggle says "Blair muted" or "Blair unmuted" in the configured voice.
+- [ ] Rapid toggles and Stop cancel stale confirmation audio; confirmations do
+  not change session permissions or replace the last briefing in replay history.
+- [ ] Global mute stops current audio and blocks completions, manual speech, and replay.
+- [ ] Unmuting preserves each session's consent and works without restarting a chat.
+- [ ] Global mute persists across daemon restarts and appears in `blair status`.
+- [ ] `Ctrl+Alt+R` replays the most recently active session's briefing when unmuted.
 - [ ] `Ctrl+Alt+S` stops speech without disabling later briefings.
 - [ ] A conflicting Windows binding leaves CLI controls operational.
 - [ ] New completion replaces stale queued/speaking output rather than creating an

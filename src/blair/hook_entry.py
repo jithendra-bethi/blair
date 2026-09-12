@@ -19,8 +19,9 @@ from .paths import blair_home, ensure_layout
 def run_hook(kind: str, argument: str | None = None, *, home: Path | None = None) -> int:
     """Provider hook entry point. It deliberately never emits output or fails the agent."""
 
-    root = ensure_layout(home or blair_home())
+    root = home or blair_home()
     try:
+        ensure_layout(root)
         if kind == "codex-notify":
             if argument is None:
                 raise ValueError("missing Codex payload")

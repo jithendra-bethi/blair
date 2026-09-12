@@ -116,7 +116,7 @@ a build that bundles the Kokoro stack or model assets.
 
 ## Controls
 
-Commands without `--session` operate on the most recently active BLAIR session.
+Session commands without `--session` operate on the most recently active BLAIR session.
 Use `blair sessions` to find provider session IDs when several agents are open.
 
 | Command | Effect |
@@ -124,7 +124,8 @@ Use `blair sessions` to find provider session IDs when several agents are open.
 | `blair on [--session ID]` | Enable future briefings for a session |
 | `blair off [--session ID]` | Disable the session and stop current speech |
 | `blair toggle [--session ID]` | Toggle the session and stop speech when turning off |
-| `blair status [--session ID]` | Show session consent state |
+| `blair status [--session ID]` | Show global mute and session consent state |
+| `blair mute` / `blair unmute` | Mute or unmute all BLAIR speech |
 | `blair sessions` | List locally known sessions |
 | `blair replay [--session ID]` | Replay that session's last cached briefing |
 | `blair stop` | Stop the currently playing WAV without disabling briefings |
@@ -135,13 +136,23 @@ The Windows background service registers these global hotkeys by default:
 
 | Hotkey | Effect |
 | --- | --- |
-| `Ctrl+Alt+B` | Toggle the most recently active session |
-| `Ctrl+Alt+R` | Replay its last briefing |
+| `Ctrl+Alt+B` | Mute/unmute all BLAIR speech and say "Blair muted" / "Blair unmuted" |
+| `Ctrl+Alt+R` | Replay the most recently active session's last briefing, unless globally muted |
 | `Ctrl+Alt+S` | Stop speech |
 
 The service starts when a hook first delivers an event. Start it explicitly with
 `blair daemon start` if you want the hotkeys registered before the first result.
 Bindings and hotkeys can be changed in configuration.
+
+Global mute stops current playback and blocks new briefings, manual speech, and
+replays. The shortcut's short status confirmation can play once while muted, using
+the configured voice; it is cached locally and is not added to briefing history.
+Rapid toggles cancel stale confirmations, and `Ctrl+Alt+S` stops them too.
+Explicit `backend=none` or `play_audio=false` configuration also silences confirmations.
+Global mute works mid-chat and persists across service restarts. Unmuting preserves
+each chat's permission: future automatic briefings resume only for enabled chats.
+The shortcut does not need to identify the focused chat. Use `blair status` to see
+whether speech is muted, and `blair on --session ID` to enable a particular chat.
 
 ## Dictation is deliberately separate
 

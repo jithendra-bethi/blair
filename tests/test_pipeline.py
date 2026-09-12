@@ -1,9 +1,13 @@
 from pathlib import Path
+from unittest.mock import Mock
+
+import pytest
 
 from blair.config import BlairConfig
 from blair.consent import ConsentPrompter
 from blair.models import AgentResult, SpeechArtifact
 from blair.pipeline import BriefingPipeline
+from blair.playback import PlaybackController
 from blair.state import StateStore
 
 
@@ -132,3 +136,34 @@ def test_new_wrapper_launch_applies_consent_once_then_allows_manual_toggle(tmp_p
     second = instance.handle(first)
     assert second.reason == "spoken"
     assert len(playback.played) == 1
+
+
+@pytest.mark.parametrize("explicit", [True, False])
+def test_global_mute_blocks_synthesis_and_consent(tmp_path: Path, explicit: bool) -> None:
+    instance, playback = pipeline(tmp_path, answer=True)
+    instance.state.set_speech_muted(True)
+    instance.consent.ask = Mock(side_effect=AssertionError("Must not prompt while muted"))
+    instance.backend.synthesize = Mock(side_effect=AssertionError("Must not synthesize"))
+    outcome = instance.handle(AgentResult("new", "Completed.", "codex"), explicit=explicit)
+    assert outcome.reason == "speech-muted"
+    assert outcome.spoken is False
+    assert instance.state.get("new") is None
+    assert playback.played == []
+
+
+def test_muting_during_synthesis_prevents_playback(tmp_path: Path, monkeypatch) -> None:
+    instance, _ = pipeline(tmp_path, answer=True)
+    instance.playback = PlaybackController(tmp_path)
+    original = instance.backend.synthesize
+
+    def synthesize(*args, **kwargs):
+        instance.playback.set_muted(True)
+        return original(*args, **kwargs)
+
+    instance.backend.synthesize = synthesize
+    spawn = Mock()
+    monkeypatch.setattr("blair.playback.subprocess.Popen", spawn)
+    outcome = instance.handle(AgentResult("one", "Completed.", "codex"))
+    assert outcome.reason == "speech-muted"
+    assert outcome.spoken is False
+    spawn.assert_not_called()

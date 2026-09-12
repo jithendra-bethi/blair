@@ -68,6 +68,8 @@ def install_codex(config_path: Path | None = None) -> IntegrationResult:
     position = header.start() if header else len(original)
     prefix = original[:position]
     suffix = original[position:]
+    if prefix and not prefix.endswith("\n"):
+        prefix += "\n"
     updated = prefix + block + suffix
     backup = _backup(path) if path.exists() else None
     _write_text_atomic(path, updated)
@@ -135,8 +137,17 @@ def uninstall_claude(settings_path: Path | None = None) -> IntegrationResult:
         groups = hooks.get(event)
         if not isinstance(groups, list):
             continue
-        retained = [group for group in groups if not _group_has_blair_hook(group, argument)]
-        if len(retained) != len(groups):
+        retained = []
+        event_changed = False
+        for group in groups:
+            if not _group_has_blair_hook(group, argument):
+                retained.append(group)
+                continue
+            remaining = [hook for hook in group["hooks"] if not _is_blair_hook(hook, argument)]
+            if remaining:
+                retained.append({**group, "hooks": remaining})
+            event_changed = True
+        if event_changed:
             changed = True
             if retained:
                 hooks[event] = retained
@@ -213,13 +224,14 @@ def _codex_block_pattern() -> re.Pattern[str]:
 def _group_has_blair_hook(group: object, argument: str) -> bool:
     if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
         return False
-    for hook in group["hooks"]:
-        if not isinstance(hook, dict) or hook.get("type") != "command":
-            continue
-        args = hook.get("args", [])
-        if isinstance(args, list) and "hook" in args and argument in args:
-            return True
-    return False
+    return any(_is_blair_hook(hook, argument) for hook in group["hooks"])
+
+
+def _is_blair_hook(hook: object, argument: str) -> bool:
+    if not isinstance(hook, dict) or hook.get("type") != "command":
+        return False
+    args = hook.get("args", [])
+    return isinstance(args, list) and "hook" in args and argument in args
 
 
 def _read_json_object(path: Path) -> dict[str, Any]:

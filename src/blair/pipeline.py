@@ -50,6 +50,8 @@ class BriefingPipeline:
         play: bool | None = None,
         wait: bool = False,
     ) -> PipelineOutcome:
+        if self.state.is_speech_muted():
+            return PipelineOutcome(False, "speech-muted")
         session = self.state.ensure_session(result.session_id, result.provider, result.cwd)
         launch_id = result.metadata.get("launch_id")
         consent_override = result.metadata.get("consent_override")
@@ -101,7 +103,9 @@ class BriefingPipeline:
         self._prune_audio()
 
         if should_play:
-            self.playback.play(artifact.path, wait=wait)
+            process = self.playback.play(artifact.path, wait=wait)
+            if process is None:
+                return PipelineOutcome(False, "speech-muted", briefing=briefing, artifact=artifact)
             return PipelineOutcome(True, "spoken", briefing=briefing, artifact=artifact)
         return PipelineOutcome(False, "synthesized", briefing=briefing, artifact=artifact)
 
