@@ -53,7 +53,7 @@ def parse_claude_hook(payload: str) -> NormalizedEvent:
 
 def _common_metadata(payload: dict[str, Any]) -> dict[str, Any]:
     metadata: dict[str, Any] = {}
-    for key in ("transcript_path", "permission_mode"):
+    for key in ("transcript_path", "permission_mode", "agent_id"):
         value = optional_string(payload, key, source="Claude")
         if value is not None:
             metadata[key] = value

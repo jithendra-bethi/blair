@@ -24,6 +24,11 @@ boundary precisely.
 
 There is no summarization API call and no BLAIR cloud service.
 
+To suppress Codex background and unidentified events, a hook reads only the matching thread's `source`
+from Codex's local SQLite index. If unavailable, it reads a bounded first-line
+`session_meta` header from the matching rollout file. It does not scan conversation
+messages or modify Codex files. Claude subagent identification uses hook metadata.
+
 ## Microphone and Win+H
 
 BLAIR has no microphone capture or STT dependency. **Win+H is a separate Windows

@@ -67,6 +67,7 @@ def test_hook_logs_only_error_type_when_layout_is_denied(
 def test_hook_only_attaches_consent_with_a_wrapper_launch(
     tmp_path: Path, monkeypatch, enabled: bool, has_launch: bool
 ) -> None:
+    monkeypatch.setattr("blair.hook_entry.should_skip_briefing", lambda event: False)
     monkeypatch.setenv("BLAIR_CONSENT_RESPONSE", "yes" if enabled else "no")
     monkeypatch.delenv("BLAIR_LAUNCH_ID", raising=False)
     if has_launch:

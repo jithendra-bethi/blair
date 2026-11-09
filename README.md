@@ -116,6 +116,22 @@ a build that bundles the Kokoro stack or model assets.
 
 ## Controls
 
+Blair ignores subagent completion hooks: they cannot ask for permission, speak,
+or interrupt a briefing. Claude subagents are identified by their `agent_id`
+(or a subagent transcript path); Codex subagents are identified from the local
+session source under `CODEX_HOME`, defaulting to `~/.codex`. Main chats keep their
+own permission settings. Previously enabled subagents are also ignored.
+
+Codex's index is read-only, with a session-header fallback. If its metadata is
+unavailable or unrecognized, Blair retries once after 150 ms, then skips the
+notification without prompting, speaking, or interrupting audio. This excludes
+unrecorded background jobs such as conversation recaps while leaving Codex's
+recap feature enabled. Main chats require a recognized source (`cli`, `vscode`,
+`exec`, or `appServer`); saved consent alone cannot identify a main chat.
+A main-chat briefing may be skipped if its source remains unavailable; Blair
+checks again on the next completion. Message text and visible headings are not
+used to classify sessions.
+
 Session commands without `--session` operate on the most recently active BLAIR session.
 Use `blair sessions` to find provider session IDs when several agents are open.
 

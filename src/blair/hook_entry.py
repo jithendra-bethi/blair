@@ -14,6 +14,7 @@ from .adapters import (
 )
 from .daemon import enqueue_event
 from .paths import blair_home, ensure_layout
+from .subagents import should_skip_briefing
 
 
 def run_hook(kind: str, argument: str | None = None, *, home: Path | None = None) -> int:
@@ -32,6 +33,8 @@ def run_hook(kind: str, argument: str | None = None, *, home: Path | None = None
             event = parse_generic_event(_read_stdin_bounded())
         else:
             raise ValueError("unknown hook kind")
+        if should_skip_briefing(event):
+            return 0
         event.metadata.pop("consent_override", None)
         event.metadata.pop("launch_id", None)
         forced = os.environ.get("BLAIR_CONSENT_RESPONSE", "").strip().casefold()

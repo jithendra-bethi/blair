@@ -71,6 +71,19 @@ runs in the worker, and playback starts only after permission is granted.
 
 ### Session and consent state
 
+Before enqueueing a completion, the hook rejects identified subagents. Claude's
+`agent_id` distinguishes child calls from main sessions; `agent_type` alone does
+not, because main sessions can use a custom agent. Legacy subagent transcript
+paths are also recognized. Codex completion payloads omit the source, so the hook
+looks up the thread in the local read-only `state_*.sqlite` index under the invoking
+process's `CODEX_HOME`. A bounded matching rollout header is the fallback. Only
+recognized main sources (`cli`, `vscode`, `exec`, `appServer`) proceed. Missing,
+unreadable, or unrecognized origins get one retry after 150 ms, then are skipped.
+This prevents unrecorded recap jobs from reaching consent, queue replacement, or
+playback, even when previously enabled. No result is cached: the next completion
+can proceed if the main-chat metadata becomes available. Claude handling is
+unchanged; display headings and message contents are not classification signals.
+
 `sessions.json` is an atomic, lock-protected store. Each provider session records
 its provider, working directory, tri-state consent, last briefing, and last WAV
 path. Session commands and replay can target an exact session; without an ID they
