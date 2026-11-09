@@ -10,6 +10,9 @@ logs, Markdown tables, and the full response stay on screen.
 > BLAIR is an early Windows-first release. It does not listen to you, transcribe
 > speech, submit prompts, or approve agent actions.
 
+**Using a MacBook?** See the [macOS setup guide](docs/macos.md) for the experimental
+source installation, activation commands, and current limitations.
+
 ## What it sounds like
 
 > The task is complete. The authentication flow was updated and all 18 tests
